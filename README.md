@@ -8,7 +8,7 @@ Ao contrário de aplicativos de painel visual, esta ferramenta foi arquitetada e
 Aplicativos e scripts de telemetria comuns falham no ambiente automotivo devido a dois gargalos:
 1. **Perda de Pacotes por Suspensão:** O sistema operacional do notebook frequentemente entra em modo de economia de energia, desligando portas USB/Bluetooth e quebrando a comunicação serial no meio de um teste de rua.
 2. **Perda de Dados em Crash:** Em caso de desconexão bruta (cabo solto, trepidação ou falha de software), os dados retidos na memória RAM são perdidos antes de serem gravados no disco.
-3. **Falta de software acessível e confiável:** Nunca achei nenhum aplicativo que leia o **SCANNER OBD2 ELM 327 BLUETOOTH** de forma satisfatória e registre em um arquivo para análise de dados posterior.
+3. **Falta de software acessível e confiável:** Nunca achei nenhum aplicativo gratuito para PC que leia o **SCANNER OBD2 ELM 327 BLUETOOTH** de forma satisfatória e registre tudo que eu queira em um arquivo para análise de dados posterior.
 
 ## Arquitetura e Solução
 * **Prevenção de Suspensão (API do Windows):** Integração com a biblioteca `ctypes` para invocar o `SetThreadExecutionState` do Kernel do Windows, travando o gerenciamento de energia. O notebook não apaga a tela e não desliga o rádio Bluetooth enquanto o motor estiver sendo monitorado.
