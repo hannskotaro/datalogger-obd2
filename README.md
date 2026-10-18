@@ -1,35 +1,39 @@
-# Datalogger OBD2: Script para Diagnóstico Estequiométrico usando SCANNER OBD2 ELM 327 BLUETOOTH
+# Datalogger OBD2 — Diagnóstico Estequiométrico via ELM327 Bluetooth
 
-Este repositório contém script Python focado em extrair telemetria bruta e ininterrupta da injeção eletrônica via protocolo OBD2 usando um **SCANNER OBD2 ELM 327 BLUETOOTH** daqueles bem barato e podre, solução para quem é **LISO**. 
+Script em Python para extração contínua de telemetria bruta da injeção eletrônica (ECU) via protocolo OBD2 utilizando interfaces Bluetooth ELM327 de baixo custo.
 
-Ao contrário de aplicativos de painel visual, esta ferramenta foi arquitetada especificamente para registrar os valores dos sensores e ajudar nos diagnósticos de problema nas peças de injeção (falhas em bombas de combustível, bicos injetores entupidos ou entradas de ar falso), monitorando o comportamento da Malha Fechada (Closed Loop) e os ajustes de combustível (Short e Long Term Fuel Trims).
+Ao contrário de aplicativos focados apenas em painéis visuais em tempo real, esta ferramenta foi desenhada para gravação contínua de sensores e diagnóstico de falhas mecânicas no sistema de injeção (queda de pressão na bomba de combustível, bicos injetores obstruídos ou entradas falsas de ar), monitorando o comportamento da Malha Fechada (*Closed Loop*) e os ajustes de combustível (*Short Term* e *Long Term Fuel Trims*).
 
-## O Problema que Resolvemos
-Aplicativos e scripts de telemetria comuns falham no ambiente automotivo devido a dois gargalos:
-1. **Perda de Pacotes por Suspensão:** O sistema operacional do notebook frequentemente entra em modo de economia de energia, desligando portas USB/Bluetooth e quebrando a comunicação serial no meio de um teste de rua.
-2. **Perda de Dados em Crash:** Em caso de desconexão bruta (cabo solto, trepidação ou falha de software), os dados retidos na memória RAM são perdidos antes de serem gravados no disco.
-3. **Falta de software acessível e confiável:** Nunca achei nenhum aplicativo gratuito para PC que leia o **SCANNER OBD2 ELM 327 BLUETOOTH** de forma satisfatória e registre tudo que eu queira em um arquivo para análise de dados posterior.
+## Problemas Resolvidos
 
-## Arquitetura e Solução
-* **Prevenção de Suspensão (API do Windows):** Integração com a biblioteca `ctypes` para invocar o `SetThreadExecutionState` do Kernel do Windows, travando o gerenciamento de energia. O notebook não apaga a tela e não desliga o rádio Bluetooth enquanto o motor estiver sendo monitorado.
-* **I/O Flush Atômico:** Gravação síncrona com `os.fsync()`. Cada linha de log (snapshot de milissegundos) é forçada fisicamente para o disco rígido assim que é lida. Se houver falha de energia, os dados até a fração de segundo anterior estão salvos no CSV.
-* **Seleção Estrita de PIDs:** O script requisita apenas as variáveis que compõem a equação de queima estequiométrica, evitando saturar a banda do adaptador ELM327 ruim com PIDs inúteis.
+Coletas de telemetria em testes de rua costumam falhar por três motivos:
+1. **Queda de conexão por suspensão do sistema:** O gerenciamento de energia do notebook desliga portas seriais/Bluetooth ao apagar a tela, interrompendo a leitura no meio do percurso.
+2. **Perda de buffer em desconexões abruptas:** Em caso de perda de sinal Bluetooth, trepidação ou desligamento da ignição, os dados retidos em memória RAM são perdidos antes da gravação no arquivo.
+3. **Saturação de banda em interfaces ELM327:** Adaptadores Bluetooth genéricos possuem alta latência e baixa taxa de transferência quando consultados com dezenas de parâmetros simultâneos.
+
+## Arquitetura da Solução
+
+* **Bloqueio de Suspensão (Windows Kernel API):** Uso de `ctypes` para invocar `SetThreadExecutionState` no kernel do Windows, impedindo que o sistema suspenda a sessão ou desligue o rádio Bluetooth durante a captura.
+* **Gravação Síncrona (`os.fsync`):** Cada leitura recebida da ECU é descarregada imediatamente do buffer do sistema operacional para o disco em formato CSV, garantindo que nenhuma amostra anterior seja perdida em caso de queda de conexão.
+* **Filtragem Estrita de PIDs:** Consulta restrita às variáveis necessárias para análise da mistura ar/combustível, maximizando a taxa de amostragem (*polling rate*) em interfaces ELM327 Bluetooth.
 
 ## Pré-requisitos
-* Adaptador OBD2 (ELM327 Bluetooth).
-* Python 3.8+ instalado.
-* Sistema Operacional: Windows (devido à dependência da API `ctypes.windll`, mas se você fizer um port para Linux me avisa que eu quero também).
 
-**Instalação das dependências:**
+* Adaptador OBD2 compatível com ELM327 (Bluetooth).
+* Python 3.8+.
+* Windows (devido à chamada direta a `ctypes.windll.kernel32`).
+
 ```bash
 pip install obd
 ```
 
-# Como Utilizar
-1. Pareie o seu adaptador ELM327 com o notebook via Bluetooth.
-2. Descubra qual é a porta COM de Saída (Outgoing/Saída) que o Windows gerou para ele acessando: Configurações > Bluetooth e Dispositivos > Mais opções de Bluetooth > Portas COM.
-3. Abra o arquivo do script no seu editor de código e altere a variável na última linha para bater com a sua porta (ex: mude para "COM6").
-4. Vá para o carro, vire a chave (apenas ignição ou motor ligado) e rode o script no terminal:
+## Como Utilizar
+
+1. Pareie o adaptador ELM327 com o notebook via Bluetooth.
+2. Identifique a porta COM de saída (*Outgoing*) atribuída pelo Windows em: **Configurações > Bluetooth e Dispositivos > Mais opções de Bluetooth > Portas COM**.
+3. Ajuste a variável da porta serial no final do arquivo `datalogger-obd2.py` (ex.: `"COM6"`).
+4. Com a ignição ligada ou o motor em funcionamento, execute:
+
 ```bash
-python datalogger_mistura.py
+python datalogger-obd2.py
 ```
